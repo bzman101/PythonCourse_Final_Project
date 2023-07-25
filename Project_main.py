@@ -24,7 +24,7 @@ def df_cleanup(df,done_by):
     df_arranged['Line'] = df_arranged['File'].str.extract(r'p\d+([A-Za-z])')
     # Extract the number after the string "moi" to a new column 'MOI'
     df_arranged['MOI'] = df_arranged['File'].str.extract(r'moi(\d+)').astype(int)
-    df_arranged['Done_by']= "Carmel"
+    df_arranged['Done_by']= done_by
     return df_arranged
 def get_mut_list(merged_df):
     """
@@ -50,30 +50,28 @@ def mut_cutoffs(mut_df,min_coverage,min_freq):
     #return filtered_mut_df
 
 ## Constants and Parameters
-maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
+#maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
 carmel_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Carmel/Carmel1.csv"
 shir_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Shir/Shir1.csv"
 
 ## Main Code
-df_maria =pd.read_csv(maria_path)
+
+#Load the intial freq.csv files into a pandas df
+#df_maria =pd.read_csv(maria_path)
 df_carmel =pd.read_csv(carmel_path)
 df_shir =pd.read_csv(shir_path)
 
-df_arr_carmel = df_cleanup(df_carmel,"Carmel")
+#Fix Shir's 'File' column to match Carmel's
+# Remove the hyphen after the number
+df_shir['File'] = df_shir['File'].str.replace('-', '', n=1)
+# Insert "_moi10_" after the capitalized letter
+df_shir['File'] = df_shir['File'].str.replace('([A-Z])', r'\1_moi10_', n=1)
 
-"""
-list_of_experiments_maria = pd.DataFrame(df_maria["File"].unique(), columns=["File"])
-list_of_experiments_maria.to_csv("unique_exp_maria.csv", index=False)
-list_of_experiments_carmel = pd.DataFrame(df_carmel["File"].unique(), columns=["File"])
-list_of_experiments_carmel.to_csv("unique_exp_carmel.csv", index=False)
-list_of_experiments_shir = pd.DataFrame(df_shir["File"].unique(), columns=["File"])
-list_of_experiments_shir.to_csv("unique_exp_shir.csv", index=False)
-"""
+#Clean up the freq files and add relevant data
+df_arr_carmel = df_cleanup(df_carmel, "Carmel")
+df_arr_shir = df_cleanup(df_shir, "Shir")
 
-"""
-s = "p10A-moi1_parallel"
-Passage = int(re.search(r'p(\d+)', s).group(1))
-Line = re.search(r'p\d+([A-Za-z])', s).group(1)
-MOI = int(re.search(r'moi(\d+)', s).group(1))
-"""
+# Create a Joined Freq File and remove lines where base_count is zero
+joined_freq = pd.concat([df_arr_carmel, df_arr_shir])
+joined_freq = joined_freq[joined_freq['base_count'] != 0]
 
