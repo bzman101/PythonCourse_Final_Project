@@ -134,7 +134,7 @@ def create_per_Line_figure(df, mutation_lst ,output_path):
     """
     experiments = list(set(df['Experiment']))
     plt.style.use('ggplot')
-    fig, axes = plt.subplots(nrows=(len(experiments)),figsize=(5, 2.5 * len(experiments)))
+    fig, axes = plt.subplots(nrows=(len(experiments)),figsize=(6, 4 * len(experiments)))
     axes = axes.flatten()
     for experiment, ax in zip(experiments, axes):
         df_exp = df[df['Experiment'] == experiment].copy()
@@ -146,10 +146,11 @@ def create_per_Line_figure(df, mutation_lst ,output_path):
             else:
                 ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m)
         ax.set_title(experiment, fontsize='small')
-        ax.set_xlabel('Time (Passages)', fontsize='small', color='black')
+        ax.set_xlabel('Passage', fontsize='small', color='black')
         ax.set_ylim(0, 1)
-    axes[0].set_ylabel('Mutation Frequency', fontsize='small', color='black')
-    plt.legend(bbox_to_anchor=(1.04, 0.5), loc="bottom", borderaxespad=0, facecolor='white', edgecolor='white')
+    axes[0].set_ylabel('Frequency', fontsize='small', color='black')
+    plt.tight_layout()
+    plt.legend(bbox_to_anchor=(0, 0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
     plt.savefig(output_path, bbox_inches='tight', dpi=800)
     plt.show()
     return
