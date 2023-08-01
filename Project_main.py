@@ -60,7 +60,7 @@ def mut_cutoffs(mut_df,min_coverage,min_frequency):
 
     return filtered_mut_df
 
-def create_mutation_figure(df, mutations_list, output_path):
+def create_per_mutation_figure(df, mutations_list, output_path):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
@@ -75,8 +75,6 @@ def create_mutation_figure(df, mutations_list, output_path):
     for mutation, ax in zip(mutations_list, axes):
         # Filter the DataFrame for rows where 'Full Mutation' is equal to the mutation and create a copy
         df_mutation = df[df['Full Mutation'] == mutation].copy()
-        # Create a new column that concatenates 'Line', 'MOI', and 'Done_by'
-        df_mutation['Experiment'] = df_mutation['Line'] + ' - ' + df_mutation['MOI'].astype(str) + ' - ' + df_mutation['Done_by']
         # Create a line plot for each unique combination of 'Line', 'MOI', and 'Done_by'
         sns.lineplot(x='Passage', y='frequency', hue='Experiment', data=df_mutation, ax=ax)
         # Set the title of the subplot to the mutation
@@ -94,14 +92,76 @@ def create_mutation_figure(df, mutations_list, output_path):
     # Show the figure
     plt.show()
 
+def create_per_Line_figure2(df, mutation_lst ,output_path):
+    """
+     This function gets a df of freq files and a path to save graph to.
+     """
+    experiments = list(set(df['Experiment']))
+    plt.style.use('ggplot')
+    # Create a subplot for each of the Lines
+    fig, axes = plt.subplots(nrows=len(experiments), ncols=1, figsize=(5, 2.5 * len(experiments)))
+    # If there's only one mutation, axes will not be an array, so we convert it to an array
+    if len(experiments) == 1:
+        axes = [axes]
+    for experiment, ax in zip(experiments, axes):
+        # Filter the DataFrame for rows where 'Experiment' is equal to the experiment and create a copy
+        df_exp = df[df['Experiment'] == experiment].copy()
+        # Create a line plot for each experiment
+        for mutation in mutation_lst:
+            df_exp_mut = df_exp[df_exp['Full Mutation'] == mutation].copy()
+            if mutation in COLORS.keys():
+                sns.lineplot(x='Passage', y='frequency', data=df_exp_mut, ax=ax, palette = COLORS, hue = 'Full Mutation')
+            else:
+                sns.lineplot(x='Passage', y='frequency', data=df_exp_mut, ax=ax, hue='Full Mutation')
+            # Set the title of the subplot to the mutation
+            ax.set_title(experiment)
+            # Set the y-limit to [0, 1]
+            ax.set_ylim(0, 1)
+            # Set x-axis to only contain integers
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            # Set legend font size
+            ax.legend(fontsize='small')
+    # Adjust the layout
+    plt.tight_layout()
+    # Save the figure with a lower dpi
+    plt.savefig(output_path, dpi=300)
+    # Show the figure
+    plt.show()
+
+def create_per_Line_figure(df, mutation_lst ,output_path):
+    """
+    This function gets a df of freq files, a list of mutations and a path to save graph to.
+    """
+    experiments = list(set(df['Experiment']))
+    plt.style.use('ggplot')
+    fig, axes = plt.subplots(nrows=(len(experiments)),figsize=(5, 2.5 * len(experiments)))
+    axes = axes.flatten()
+    for experiment, ax in zip(experiments, axes):
+        df_exp = df[df['Experiment'] == experiment].copy()
+        df_exp = df_exp.sort_values('Passage')
+        for m in mutation_lst:
+            df_exp_mutation = df_exp[df_exp['Full Mutation'] == m].sort_values('Passage').copy()
+            if m in COLORS:
+                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=COLORS[m])
+            else:
+                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m)
+        ax.set_title(experiment, fontsize='small')
+        ax.set_xlabel('Time (Passages)', fontsize='small', color='black')
+        ax.set_ylim(0, 1)
+    axes[0].set_ylabel('Mutation Frequency', fontsize='small', color='black')
+    plt.legend(bbox_to_anchor=(1.04, 0.5), loc="bottom", borderaxespad=0, facecolor='white', edgecolor='white')
+    plt.savefig(output_path, bbox_inches='tight', dpi=800)
+    plt.show()
+    return
 
 ## Constants and Parameters
 maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
 carmel_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Carmel/Carmel1.csv"
 shir_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Shir/Shir1.csv"
 export_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/Export/"
-min_freq = 0.01
+min_freq = 0.05
 min_cov = 100
+
 
 
 ## Main Code
@@ -135,6 +195,13 @@ Mutation_df_filtered = mut_cutoffs(Mutation_df,min_cov,min_freq)
 mut_lst = Mutation_df_filtered['Full Mutation'].tolist()
 mut_lst = list(set(mut_lst))
 
-# Create Graph per Mutation and save them to the Export folder:
-create_mutation_figure(Mutation_df_filtered, mut_lst, export_path+'Figure1')
+#Create Uniq Identifier for each Experiment
+Mutation_df_filtered['Experiment'] = Mutation_df_filtered['Done_by'] + "-" + \
+                                     Mutation_df_filtered['MOI'].astype(str) + "-" \
+                                     + Mutation_df_filtered['Line'].astype(str)
 
+# Create Graph per Line and save them to the Export folder:
+create_per_Line_figure(Mutation_df_filtered, mut_lst ,export_path + 'Figure1')
+
+# Create Graph per Mutation and save them to the Export folder:
+#create_per_mutation_figure(Mutation_df_filtered, mut_lst, export_path+'Figure2')
