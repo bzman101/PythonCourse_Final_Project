@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.ticker as ticker
+import matplotlib.colors as mcolors
 import sys
 import re
 from matplotlib.patches import Patch
@@ -69,15 +70,15 @@ def assign_colors_to_experiment(df):
     exp_lst = df['Experiment'].tolist()
     unique_items = set(exp_lst)
     num_items = len(unique_items)
+    # Get the list of named colors from Matplotlib
+    named_colors = list(mcolors.CSS4_COLORS.keys())
+    # Generate a list of random colors from the named colors
+    random_colors = [named_colors[random.randint(0, len(named_colors)-1)] for _ in range(num_items)]
 
-    # Generate a list of random colors with the same length as the number of unique items
-    # For simplicity, we'll use RGB tuples as color representations (e.g., (255, 0, 0) for red).
-    random_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(num_items)]
     color_assignment = {}
     for index, item in enumerate(unique_items):
         color_assignment[item] = random_colors[index]
     return color_assignment
-
 def create_per_Line_figure(df, mutation_lst ,output_path):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
@@ -148,43 +149,30 @@ def create_heatmap_figure(df, mutation_lst, output_path):
     plt.savefig(output_path)
     plt.show()
     return
-
-def create_genome_map_figure(df, mutation_lst, output_path):
+def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     # Filter the dataframe
     df = df[df['Full Mutation'].isin(mutation_lst)]
-
     # Group the dataframe and take the maximum frequency for each group
     df_grouped = df.groupby(['Experiment', 'ref_pos'])['frequency'].max().reset_index()
-
     # Create a list of unique colors for each experiment
     unique_experiments = df_grouped['Experiment'].unique()
     unique_colors = plt.cm.get_cmap('rainbow', len(unique_experiments))
-
-    # Create a dictionary to map each experiment to a color
-    experiment_color_dict = {experiment: unique_colors(i) for i, experiment in enumerate(unique_experiments)}
-
     # Create the scatter plot
     plt.figure(figsize=(10, 8))
     for experiment in unique_experiments:
         df_experiment = df_grouped[df_grouped['Experiment'] == experiment]
-        plt.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=experiment_color_dict[experiment], label=experiment)
-
+        plt.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=exp_col[experiment], label=experiment)
     plt.xlim(1, 3650)
     plt.xlabel('ref_pos')
     plt.ylabel('frequency')
     plt.title('Genome Map')
-
     # Create a legend
-    legend_handles = [Patch(facecolor=experiment_color_dict[experiment], label=experiment) for experiment in unique_experiments]
+    legend_handles = [Patch(facecolor=exp_col[experiment], label=experiment) for experiment in unique_experiments]
     plt.legend(handles=legend_handles, title='Experiment', loc='center left')
-
-    # Save the figure as a PDF
-    with PdfPages(output_path) as pdf:
-        pdf.savefig()
-
+    # Save the figure
+    plt.savefig(output_path, bbox_inches='tight', dpi=800)
     # Show the figure
     plt.show()
-
     return
 
 
@@ -233,13 +221,13 @@ mut_lst = mut_cutoffs(Mutation_df,min_cov,min_freq)
 exp_col = assign_colors_to_experiment(Mutation_df)
 
 # Create Graph per Line and save them to the Export folder:
-#create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
+create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
 #create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 
 # Create Heatmap for passage 0
-#create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
+create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
 
 # Create a graph of positon of mutation along the genome of MS2
-#create_genome_map_figure(Mutation_df, mut_lst, export_path + 'Figure4.PDF')
+create_genome_map_figure(Mutation_df, mut_lst,exp_col, export_path + 'Figure4')
