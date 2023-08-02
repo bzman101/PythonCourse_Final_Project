@@ -1,16 +1,12 @@
 ## Libraries
 import pandas as pd
 import random
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
-import sys
-import re
 from matplotlib.patches import Patch
 from MS2_COLORS import COLORS
-from matplotlib.backends.backend_pdf import PdfPages
 
 ## Functions
 
@@ -58,7 +54,7 @@ def mut_cutoffs(mut_df,min_coverage,min_frequency):
                    3143, 3146, 3150, 3401, 3539, 3542]
     remove_list = primers + problematic
     filtered_mut_df = filtered_mut_df[~filtered_mut_df['ref_pos'].isin(remove_list)]
-    # Lose only the mutations that has not met the cutoffs in any passage.
+    # Lose only the mutations that has not met the cutoffs in any of the passages.
     filtered_mut_df = filtered_mut_df[filtered_mut_df['base_count'] >= min_coverage]
     filtered_mut_df = filtered_mut_df[filtered_mut_df['frequency'] >= min_frequency]
     relevant_mutations = filtered_mut_df['Full Mutation'].tolist()
@@ -74,7 +70,6 @@ def assign_colors_to_experiment(df):
     named_colors = list(mcolors.CSS4_COLORS.keys())
     # Generate a list of random colors from the named colors
     random_colors = [named_colors[random.randint(0, len(named_colors)-1)] for _ in range(num_items)]
-
     color_assignment = {}
     for index, item in enumerate(unique_items):
         color_assignment[item] = random_colors[index]
@@ -83,25 +78,34 @@ def create_per_Line_figure(df, mutation_lst ,output_path):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
+    # Create a list of the different experiments
     experiments = list(set(df['Experiment']))
+    # Create ggplot alike plot
     plt.style.use('ggplot')
     fig, axes = plt.subplots(layout='constrained',nrows=(len(experiments)),figsize=(6, 4 *len(experiments)))
     axes = axes.flatten()
+    # Adding the different graphs looping over experiments
     for experiment, ax in zip(experiments, axes):
         df_exp = df[df['Experiment'] == experiment].copy()
         df_exp = df_exp.sort_values('Passage')
         for m in mutation_lst:
             df_exp_mutation = df_exp[df_exp['Full Mutation'] == m].sort_values('Passage').copy()
+            # Adding a unique color to the mutation according to a pre-made dictionary - 'COLORS'
             if m in COLORS:
                 ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=COLORS[m])
             else:
                 ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m)
+        # Tweaking and fixing the title and axis
         ax.set_title(experiment, fontsize='small')
         ax.set_xlabel('Passage', fontsize='small', color='black')
         ax.set_ylim(0, 1)
+    # Making sure the y axis presented only once
     axes[0].set_ylabel('Frequency', fontsize='small', color='black')
+    # Adjust the layout
     plt.tight_layout()
+    # Adding legend
     plt.legend(ncol=1, loc="center right", borderaxespad=0, facecolor='white', edgecolor='white')
+    # Saving and presenting the graph
     plt.savefig(output_path, bbox_inches='tight', dpi=800)
     plt.show()
     return
@@ -130,7 +134,7 @@ def create_per_mutation_figure(df, mutations_list, output_path):
         ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         # Set legend font size
         ax.legend(fontsize='small')
-    # Adjust the layout
+
     plt.tight_layout()
     # Save the figure with a lower dpi
     plt.savefig(output_path, dpi=800)
@@ -156,7 +160,6 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     df_grouped = df.groupby(['Experiment', 'ref_pos'])['frequency'].max().reset_index()
     # Create a list of unique colors for each experiment
     unique_experiments = df_grouped['Experiment'].unique()
-    unique_colors = plt.cm.get_cmap('rainbow', len(unique_experiments))
     # Create the scatter plot
     plt.figure(figsize=(10, 8))
     for experiment in unique_experiments:
