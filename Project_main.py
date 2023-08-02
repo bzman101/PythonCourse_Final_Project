@@ -44,7 +44,7 @@ def get_mut_column(merged_df):
 def mut_cutoffs(mut_df,min_coverage,min_frequency):
     """
     This Function receives a mutants df, a minimum coverage value and a minimum frequency value.
-    It returns the a list of mutations
+    It returns the df when it is filtered by these cutoffs
     In addition, the function will lose mutation from known problematic regions or primer region.
     """
     filtered_mut_df = mut_df.copy()
@@ -60,38 +60,6 @@ def mut_cutoffs(mut_df,min_coverage,min_frequency):
     filtered_mut_df = filtered_mut_df[filtered_mut_df['frequency'] >= min_frequency]
     relevant_mutations = filtered_mut_df['Full Mutation'].tolist()
     return relevant_mutations
-
-def create_per_mutation_figure(df, mutations_list, output_path):
-    """
-    This function gets a df of freq files, a list of mutations and a path to save graph to.
-    """
-    plt.style.use('ggplot')
-    # Filter the mutations_list to only include mutations that appear in more than one passage
-    mutations_list = [m for m in mutations_list if df[df['Full Mutation'] == m]['Passage'].nunique() > 1]
-    # Create a subplot for each mutation
-    fig, axes = plt.subplots(nrows=len(mutations_list), ncols=4, figsize=(3, 1.5 * len(mutations_list)))
-    # If there's only one mutation, axes will not be an array, so we convert it to an array
-    if len(mutations_list) == 1:
-        axes = [axes]
-    for mutation, ax in zip(mutations_list, axes):
-        # Filter the DataFrame for rows where 'Full Mutation' is equal to the mutation and create a copy
-        df_mutation = df[df['Full Mutation'] == mutation].copy()
-        # Create a line plot for each unique combination of 'Line', 'MOI', and 'Done_by'
-        sns.lineplot(x='Passage', y='frequency', hue='Experiment', data=df_mutation, ax=ax)
-        # Set the title of the subplot to the mutation
-        ax.set_title(mutation)
-        # Set the y-limit to [0, 1]
-        ax.set_ylim(0, 1)
-        # Set x-axis to only contain integers
-        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # Set legend font size
-        ax.legend(fontsize='small')
-    # Adjust the layout
-    plt.tight_layout()
-    # Save the figure with a lower dpi
-    plt.savefig(output_path, dpi=300)
-    # Show the figure
-    plt.show()
 
 def create_per_Line_figure(df, mutation_lst ,output_path):
     """
@@ -119,6 +87,51 @@ def create_per_Line_figure(df, mutation_lst ,output_path):
     plt.savefig(output_path, bbox_inches='tight', dpi=800)
     plt.show()
     return
+def create_per_mutation_figure(df, mutations_list, output_path):
+    """
+    This function gets a df of freq files, a list of mutations and a path to save graph to.
+    """
+    plt.style.use('ggplot')
+    # Filter the mutations_list to only include mutations that appear in more than one passage
+    mutations_list = [m for m in mutations_list if df[df['Full Mutation'] == m]['Passage'].nunique() > 1]
+    # Create a subplot for each mutation with a smaller size
+    fig, axes = plt.subplots(nrows=len(mutations_list), ncols=3, figsize=(5, 2.5 * len(mutations_list)))
+    # If there's only one mutation, axes will not be an array, so we convert it to an array
+    if len(mutations_list) == 1:
+        axes = [axes]
+    for mutation, ax in zip(mutations_list, axes):
+        # Filter the DataFrame for rows where 'Full Mutation' is equal to the mutation and create a copy
+        df_mutation = df[df['Full Mutation'] == mutation].reset_index(drop=True)
+        # Create a line plot for each unique combination of 'Line', 'MOI', and 'Done_by'
+        sns.lineplot(x='Passage', y='frequency', hue='Experiment', data=df_mutation, ax=ax)
+        # Set the title of the subplot to the mutation
+        ax.set_title(mutation)
+        # Set the y-limit to [0, 1]
+        ax.set_ylim(0, 1)
+        # Set x-axis to only contain integers
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        # Set legend font size
+        ax.legend(fontsize='small')
+    # Adjust the layout
+    plt.tight_layout()
+    # Save the figure with a lower dpi
+    plt.savefig(output_path, dpi=800)
+    # Show the figure
+    plt.show()
+    return
+def create_heatmap_figure(df, mutation_lst, output_path):
+    # Filter the dataframe
+    df = df[(df['Passage'] == 0) & (df['Full Mutation'].isin(mutation_lst))]
+    # Pivot the dataframe
+    df_pivot = df.pivot(index='Experiment', columns='Full Mutation', values='frequency')
+    # Create the heatmap
+    plt.figure(figsize=(15, 12))
+    sns.heatmap(df_pivot, cmap=sns.cubehelix_palette(as_cmap=True))
+    # Save and show the figure
+    plt.savefig(output_path)
+    plt.show()
+    return
+
 
 ## Constants and Parameters
 maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
@@ -127,8 +140,6 @@ shir_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python 
 export_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/Export/"
 min_freq = 0.05
 min_cov = 100
-
-
 
 ## Main Code
 
@@ -149,7 +160,7 @@ df_arr_shir = df_cleanup(df_shir, "Shir")
 
 # Create a Joined Freq File and remove lines where base_count is zero
 joined_freq = pd.concat([df_arr_carmel, df_arr_shir])
-joined_freq = joined_freq[joined_freq['base_count'] != 0]
+joined_freq = joined_freq[joined_freq['base_count'] != 0].reset_index(drop=True)
 
 #Create Uniq Identifier for each Experiment
 joined_freq['Experiment'] = joined_freq['Done_by'] + "-" + \
@@ -162,8 +173,12 @@ Mutation_df = get_mut_column(joined_freq)
 # create a list of mutation that met the cutoffs (can be found in the parameters section)
 mut_lst = mut_cutoffs(Mutation_df,min_cov,min_freq)
 
+
 # Create Graph per Line and save them to the Export folder:
 #create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
-create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
+#create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
+
+# Create Heatmap for passage 0
+#create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
