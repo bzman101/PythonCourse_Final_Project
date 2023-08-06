@@ -9,7 +9,7 @@ from matplotlib.patches import Patch
 from MS2_COLORS import COLORS
 import math
 from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
+import numpy as np
 
 ## Functions
 
@@ -61,25 +61,14 @@ def mut_cutoffs(mut_df,min_coverage,min_frequency):
     filtered_mut_df = filtered_mut_df[filtered_mut_df['base_count'] >= min_coverage]
     filtered_mut_df = filtered_mut_df[filtered_mut_df['frequency'] >= min_frequency]
     relevant_mutations = filtered_mut_df['Full Mutation'].tolist()
+    relevant_mutations = list(set(relevant_mutations))
+    relevant_mutations.sort()
     return relevant_mutations
-def assign_colors_to_experiment(df):
-    """
-    Assigns random colors to each experiment in the df and creates and returns a dictionary.
-    """
-    exp_lst = df['Experiment'].tolist()
-    unique_items = set(exp_lst)
-    num_items = len(unique_items)
-    # Get the list of named colors from Matplotlib
-    named_colors = list(mcolors.CSS4_COLORS.keys())
-    # Generate a list of random colors from the named colors
-    random_colors = [named_colors[random.randint(0, len(named_colors)-1)] for _ in range(num_items)]
-    color_assignment = {}
-    for index, item in enumerate(unique_items):
-        color_assignment[item] = random_colors[index]
-    return color_assignment
 def get_color_for_new_mutation(mutation):
-    named_colors = list(mcolors.CSS4_COLORS.keys())
-    picked_color = 'black'
+    possible_colors = list(mcolors.CSS4_COLORS.keys())
+    relevant_colors = [x for x in possible_colors if x not in COLORS.items()]
+    picked_color = random.choice(relevant_colors)
+    relevant_mut_colors[mutation]=picked_color
     return picked_color
 def create_per_Line_figure(df, mutation_lst, output_path):
     """
@@ -105,7 +94,7 @@ def create_per_Line_figure(df, mutation_lst, output_path):
                 ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=relevant_mut_colors[m])
                 color = COLORS[m]
             else:
-                color = 'black' #get_color_for_new_mutation(m)
+                color = get_color_for_new_mutation(m)
                 ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=color)
             # Add the label and color to the legend_elements dictionary
             legend_elements[m] = color
@@ -130,32 +119,41 @@ def create_per_mutation_figure(df, mutations_list, output_path):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
-    plt.style.use('ggplot')
     # Filter the mutations_list to only include mutations that appear in more than one passage
     mutations_list = [m for m in mutations_list if df[df['Full Mutation'] == m]['Passage'].nunique() > 1]
-    # Create a subplot for each mutation with a smaller size
-    fig, axes = plt.subplots(nrows=len(mutations_list), ncols=3, figsize=(5, 2.5 * len(mutations_list)))
-    # If there's only one mutation, axes will not be an array, so I convert it to an array
-    if len(mutations_list) == 1:
-        axes = [axes]
-    for mutation, ax in zip(mutations_list, axes):
-        # Filter the DataFrame for rows where 'Full Mutation' is equal to the mutation and create a copy
-        df_mutation = df[df['Full Mutation'] == mutation].reset_index(drop=True)
-        # Create a line plot for each unique combination of 'Line', 'MOI', and 'Done_by'
-        sns.lineplot(x='Passage', y='frequency', hue='Experiment', data=df_mutation, ax=ax)
-        # Set the title of the subplot to the mutation
-        ax.set_title(mutation)
-        # Set the y-limit to [0, 1]
-        ax.set_ylim(0, 1)
-        # Set x-axis to only contain integers
-        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # Set legend font size
-        ax.legend(fontsize='small')
-    plt.tight_layout()
-    # Save the figure with a lower dpi
-    plt.savefig(output_path, dpi=800)
-    # Show the figure
-    plt.show()
+    num_of_pages = math.ceil(len(mutations_list) / 9)
+    # Divide the mutation into sublists of 9 graphs a page
+    n = len(mutations_list)
+    sublists = []
+    for i in range(0, n, 9):
+        sublist = mutations_list[i:i + 9]
+        sublists.append(sublist)
+    for page in range(num_of_pages):
+        plt.style.use('ggplot')
+        # Create a subplot for each mutation
+        fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(20, 10))
+        axes = np.array(axes).flatten()  # Flatten the axes array
+        # If there's only one mutation, axes will not be an array, so I convert it to an array
+        if len(sublists[page]) == 1:
+            axes = [axes]
+        for mutation, ax in zip(sublists[page], axes):
+            # Filter the DataFrame for rows where 'Full Mutation' is equal to the mutation and create a copy
+            df_mutation = df[df['Full Mutation'] == mutation].reset_index(drop=True)
+            # Create a line plot for each unique combination of 'Line', 'MOI', and 'Done_by'
+            sns.lineplot(x='Passage', y='frequency', hue='Experiment', ax=ax, data=df_mutation)
+            # Set the title of the subplot to the mutation
+            ax.set_title(mutation)
+            # Set the y-limit to [0, 1]
+            ax.set_ylim(0, 1)
+            # Set x-axis to only contain integers
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            # Set legend font size
+            ax.legend(fontsize='small')
+        plt.tight_layout()
+        # Save the figure with a lower dpi
+        plt.savefig(output_path+"_"+str(page), dpi=800)
+        # Show the figure
+        plt.show()
     return
 def create_heatmap_figure(df, mutation_lst, output_path):
     # Filter the dataframe
@@ -216,7 +214,7 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
 carmel_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Carmel/Carmel1.csv"
 shir_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Shir/Shir1.csv"
 export_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/Export/"
-min_freq = 0.15
+min_freq = 0.05
 min_cov = 100
 relevant_mut_colors = COLORS
 
@@ -253,7 +251,6 @@ Mutation_df = get_mut_column(joined_freq)
 mut_lst = mut_cutoffs(Mutation_df,min_cov,min_freq)
 
 # create a dictionary to color-code the different experiments
-exp_col = assign_colors_to_experiment(Mutation_df)
 exp_col = {'Carmel-1-A': 'brown', 'Carmel-1-B': 'rosybrown', 'Carmel-10-A': 'darkgreen',
            'Carmel-10-B': 'seagreen', 'Shir-10-A': 'silver',
            'Shir-10-B': 'gray', 'Shir-10-C': 'black'}
@@ -262,10 +259,10 @@ exp_col = {'Carmel-1-A': 'brown', 'Carmel-1-B': 'rosybrown', 'Carmel-10-A': 'dar
 create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
-#create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
+create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 
 # Create Heatmap for passage 0
-#create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
+create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
 
 # Create a graph of positon of mutation along the genome of MS2
 create_genome_map_figure(Mutation_df, mut_lst,exp_col, export_path + 'Figure4')

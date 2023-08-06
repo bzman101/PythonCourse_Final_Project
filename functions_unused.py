@@ -86,8 +86,7 @@ def create_per_mutation2_figure(df, mutations_list, output_path):
 
     # Show the figure
     plt.show()
-
-def create_per_Line_figure - (df, mutation_lst ,output_path):#problem with graph legend (before switching)
+def create_per_Line_figure2(df, mutation_lst ,output_path):#problem with graph legend (before switching)
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
@@ -123,3 +122,19 @@ def create_per_Line_figure - (df, mutation_lst ,output_path):#problem with graph
     plt.savefig(output_path, bbox_inches='tight', dpi=800)
     plt.show()
     return
+
+def assign_colors_to_experiment(df):
+    """
+    Assigns random colors to each experiment in the df and creates and returns a dictionary.
+    """
+    exp_lst = df['Experiment'].tolist()
+    unique_items = set(exp_lst)
+    num_items = len(unique_items)
+    # Get the list of named colors from Matplotlib
+    named_colors = list(mcolors.CSS4_COLORS.keys())
+    # Generate a list of random colors from the named colors
+    random_colors = [named_colors[random.randint(0, len(named_colors)-1)] for _ in range(num_items)]
+    color_assignment = {}
+    for index, item in enumerate(unique_items):
+        color_assignment[item] = random_colors[index]
+    return color_assignment
