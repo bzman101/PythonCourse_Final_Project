@@ -153,8 +153,6 @@ def create_heatmap_figure(df, mutation_lst, output_path):
     plt.savefig(output_path)
     plt.show()
     return
-
-
 def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     # Filter the dataframe
     df = df[df['Full Mutation'].isin(mutation_lst)]
@@ -164,24 +162,20 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     unique_experiments = df_grouped['Experiment'].unique()
     # Create the scatter plot
     fig, ax = plt.subplots(figsize=(15, 4))
-
     # Define the x-axis ranges for the different genes
     gene_ranges = [(1, 1311), (1311, 1727), (1678, 1905), (1761, 3650)]
     # Define the colors for the different genes
-    gene_colors = ['lightsteelblue', 'cornflowerblue', 'royalblue', 'midnightblue']
+    gene_colors = ['lightsteelblue', 'darkorchid', 'royalblue', 'mediumaquamarine']
     # Define the labels for the different genes
     gene_labels = ['mat', 'cp', 'lys', 'rep']
-
     # Fill the background colors for the different genes and create custom legend handles
     gene_legend_handles = []
     for gene_range, gene_color, gene_label in zip(gene_ranges, gene_colors, gene_labels):
         ax.axvspan(gene_range[0], gene_range[1], facecolor=gene_color, alpha=0.2)
         gene_legend_handles.append(Patch(facecolor=gene_color, alpha=0.2, label=gene_label))
-
     for experiment in unique_experiments:
         df_experiment = df_grouped[df_grouped['Experiment'] == experiment]
         ax.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=exp_col[experiment], label=experiment)
-
     ax.set_xlim(1, 3650)
     ax.set_xlabel('ref_pos')
     ax.set_ylabel('frequency')
@@ -248,7 +242,7 @@ exp_col = assign_colors_to_experiment(Mutation_df)
 create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
-create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
+#create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 
 # Create Heatmap for passage 0
 create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
