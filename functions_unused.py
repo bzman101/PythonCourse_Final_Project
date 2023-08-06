@@ -87,3 +87,39 @@ def create_per_mutation2_figure(df, mutations_list, output_path):
     # Show the figure
     plt.show()
 
+def create_per_Line_figure - (df, mutation_lst ,output_path):#problem with graph legend (before switching)
+    """
+    This function gets a df of freq files, a list of mutations and a path to save graph to.
+    """
+    # Create a list of the different experiments
+    experiments = list(set(df['Experiment']))
+    # Create ggplot alike plot
+    plt.style.use('ggplot')
+    fig, axes = plt.subplots(layout='constrained',nrows=(len(experiments)),figsize=(6, 4 *len(experiments)))
+    axes = axes.flatten()
+    # Adding the different graphs looping over experiments
+    for experiment, ax in zip(experiments, axes):
+        df_exp = df[df['Experiment'] == experiment].copy()
+        df_exp = df_exp.sort_values('Passage')
+        for m in mutation_lst:
+            df_exp_mutation = df_exp[df_exp['Full Mutation'] == m].sort_values('Passage').copy()
+            # Adding a unique color to the mutation according to a pre-made dictionary - 'COLORS'
+            if m in COLORS:
+                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=COLORS[m])
+            else:
+                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m)
+        # Tweaking and fixing the title and axis
+        ax.set_title(experiment, fontsize='small')
+        ax.set_xlabel('Passage', fontsize='small', color='black')
+        ax.set_ylim(0, 1)
+
+    # Making sure the y axis presented only once
+    axes[0].set_ylabel('Frequency', fontsize='small', color='black')
+    # Adjust the layout
+    plt.tight_layout()
+    # Adding legend
+    plt.legend(ncol=1, loc="center right", borderaxespad=0, facecolor='white', edgecolor='white')
+    # Saving and presenting the graph
+    plt.savefig(output_path, bbox_inches='tight', dpi=800)
+    plt.show()
+    return

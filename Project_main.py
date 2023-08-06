@@ -7,6 +7,9 @@ import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 from MS2_COLORS import COLORS
+import math
+from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 
 ## Functions
 
@@ -74,15 +77,22 @@ def assign_colors_to_experiment(df):
     for index, item in enumerate(unique_items):
         color_assignment[item] = random_colors[index]
     return color_assignment
-def create_per_Line_figure(df, mutation_lst ,output_path):
+def get_color_for_new_mutation(mutation):
+    named_colors = list(mcolors.CSS4_COLORS.keys())
+    picked_color = 'black'
+    return picked_color
+def create_per_Line_figure(df, mutation_lst, output_path):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
     # Create a list of the different experiments
     experiments = list(set(df['Experiment']))
+    experiments.sort()
+    # Create a dictionary to store unique labels and their corresponding colors
+    legend_elements = {}
     # Create ggplot alike plot
     plt.style.use('ggplot')
-    fig, axes = plt.subplots(layout='constrained',nrows=(len(experiments)),figsize=(6, 4 *len(experiments)))
+    fig, axes = plt.subplots(layout='constrained',ncols=3, nrows=math.ceil(len(experiments)/3),figsize=(20, 10))
     axes = axes.flatten()
     # Adding the different graphs looping over experiments
     for experiment, ax in zip(experiments, axes):
@@ -92,21 +102,28 @@ def create_per_Line_figure(df, mutation_lst ,output_path):
             df_exp_mutation = df_exp[df_exp['Full Mutation'] == m].sort_values('Passage').copy()
             # Adding a unique color to the mutation according to a pre-made dictionary - 'COLORS'
             if m in COLORS:
-                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=COLORS[m])
+                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=relevant_mut_colors[m])
+                color = COLORS[m]
             else:
-                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m)
+                color = 'black' #get_color_for_new_mutation(m)
+                ax.plot('Passage', 'frequency', data=df_exp_mutation, linestyle='-', marker='.', label=m, color=color)
+            # Add the label and color to the legend_elements dictionary
+            legend_elements[m] = color
         # Tweaking and fixing the title and axis
-        ax.set_title(experiment, fontsize='small')
+        ax.set_title(experiment, fontsize='large')
         ax.set_xlabel('Passage', fontsize='small', color='black')
         ax.set_ylim(0, 1)
+    # Cover the bottom left and bottom center subplots with a white rectangle
+    axes[-2].axis('off')
+    axes[-1].axis('off')
     # Making sure the y axis presented only once
-    axes[0].set_ylabel('Frequency', fontsize='small', color='black')
-    # Adjust the layout
-    plt.tight_layout()
-    # Adding legend
-    plt.legend(ncol=1, loc="center right", borderaxespad=0, facecolor='white', edgecolor='white')
+    axes[3].set_ylabel('Frequency', fontsize='small', color='black')
+    # Create custom legend elements using Line2D
+    custom_lines = [Line2D([0], [0], color=color, lw=2) for label, color in legend_elements.items()]
+    # Add the custom legend to the figure
+    fig.legend(custom_lines, legend_elements.keys(), loc='lower right', ncol=4, fontsize='large')
     # Saving and presenting the graph
-    plt.savefig(output_path, bbox_inches='tight', dpi=800)
+    plt.savefig(output_path, dpi=800)
     plt.show()
     return
 def create_per_mutation_figure(df, mutations_list, output_path):
@@ -118,7 +135,7 @@ def create_per_mutation_figure(df, mutations_list, output_path):
     mutations_list = [m for m in mutations_list if df[df['Full Mutation'] == m]['Passage'].nunique() > 1]
     # Create a subplot for each mutation with a smaller size
     fig, axes = plt.subplots(nrows=len(mutations_list), ncols=3, figsize=(5, 2.5 * len(mutations_list)))
-    # If there's only one mutation, axes will not be an array, so we convert it to an array
+    # If there's only one mutation, axes will not be an array, so I convert it to an array
     if len(mutations_list) == 1:
         axes = [axes]
     for mutation, ax in zip(mutations_list, axes):
@@ -189,19 +206,19 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     ax.add_artist(legend1)
     ax.add_artist(legend2)
     # Save the figure
-    plt.savefig(output_path, bbox_inches='tight', dpi=800)
+    plt.savefig(output_path, dpi=800)
     # Show the figure
     plt.show()
     return
 
 
 ## Constants and Parameters
-#maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
 carmel_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Carmel/Carmel1.csv"
 shir_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Shir/Shir1.csv"
 export_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/Export/"
-min_freq = 0.2
+min_freq = 0.15
 min_cov = 100
+relevant_mut_colors = COLORS
 
 ## Main Code
 
@@ -237,6 +254,9 @@ mut_lst = mut_cutoffs(Mutation_df,min_cov,min_freq)
 
 # create a dictionary to color-code the different experiments
 exp_col = assign_colors_to_experiment(Mutation_df)
+exp_col = {'Carmel-1-A': 'brown', 'Carmel-1-B': 'rosybrown', 'Carmel-10-A': 'darkgreen',
+           'Carmel-10-B': 'seagreen', 'Shir-10-A': 'silver',
+           'Shir-10-B': 'gray', 'Shir-10-C': 'black'}
 
 # Create Graph per Line and save them to the Export folder:
 create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
@@ -245,7 +265,7 @@ create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 #create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 
 # Create Heatmap for passage 0
-create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
+#create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
 
 # Create a graph of positon of mutation along the genome of MS2
 create_genome_map_figure(Mutation_df, mut_lst,exp_col, export_path + 'Figure4')
