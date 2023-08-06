@@ -162,7 +162,7 @@ def create_heatmap_figure(df, mutation_lst, output_path):
     df_pivot = df.pivot(index='Experiment', columns='Full Mutation', values='frequency')
     # Create the heatmap
     plt.figure(figsize=(15, 12))
-    sns.heatmap(df_pivot, cmap=sns.cubehelix_palette(as_cmap=True))
+    sns.heatmap(df_pivot, cmap=sns.cubehelix_palette(as_cmap=True), vmin=0, vmax=0.1)
     # Save and show the figure
     plt.savefig(output_path)
     plt.show()
@@ -253,13 +253,13 @@ exp_col = {'Carmel-1-A': 'brown', 'Carmel-1-B': 'rosybrown', 'Carmel-10-A': 'dar
            'Shir-10-B': 'gray', 'Shir-10-C': 'black'}
 
 # Create Graph per Line and save them to the Export folder:
-create_per_line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
+#create_per_line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
-create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
+#create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 
 # Create Heatmap for passage 0
 create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
 
 # Create a graph of position of mutation along the genome of MS2
-create_genome_map_figure(Mutation_df, mut_lst,exp_col, export_path + 'Figure4')
+#create_genome_map_figure(Mutation_df, mut_lst,exp_col, export_path + 'Figure4')
