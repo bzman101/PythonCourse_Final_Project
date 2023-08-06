@@ -12,8 +12,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 
 ## Functions
-
-def df_cleanup(df,done_by):
+def df_cleanup(df, done_by):
     """
     This Function receives a df of a freq file returns the same df with 4 columns added:
     MOI - presenting the MOI of the experiment
@@ -29,12 +28,12 @@ def df_cleanup(df,done_by):
     df_arranged['Line'] = df_arranged['File'].str.extract(r'p\d+([A-Za-z])')
     # Extract the number after the string "moi" to a new column 'MOI'
     df_arranged['MOI'] = df_arranged['File'].str.extract(r'moi(\d+)').astype(int)
-    df_arranged['Done_by']= done_by
+    df_arranged['Done_by'] = done_by
     return df_arranged
 def get_mut_column(merged_df):
     """
     This Function receives a merged df of freq files adds a Mutation field:
-    Mutation - the mutation written in a formatted way :(N_ref+position+N_mut)
+    Mutation - the mutation written in a formatted way :(N_ref + position + N_mut)
     return: mut_df
     """
     # Add Mutation column
@@ -70,7 +69,7 @@ def get_color_for_new_mutation(mutation):
     picked_color = random.choice(relevant_colors)
     relevant_mut_colors[mutation]=picked_color
     return picked_color
-def create_per_Line_figure(df, mutation_lst, output_path):
+def create_per_line_figure(df, mutation_lst, output_path):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
@@ -105,7 +104,7 @@ def create_per_Line_figure(df, mutation_lst, output_path):
     # Cover the bottom left and bottom center subplots with a white rectangle
     axes[-2].axis('off')
     axes[-1].axis('off')
-    # Making sure the y axis presented only once
+    # Making sure the y-axis presented only once
     axes[3].set_ylabel('Frequency', fontsize='small', color='black')
     # Create custom legend elements using Line2D
     custom_lines = [Line2D([0], [0], color=color, lw=2) for label, color in legend_elements.items()]
@@ -168,7 +167,7 @@ def create_heatmap_figure(df, mutation_lst, output_path):
     plt.savefig(output_path)
     plt.show()
     return
-def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
+def create_genome_map_figure(df, mutation_lst, expe_col, output_path):
     # Filter the dataframe
     df = df[df['Full Mutation'].isin(mutation_lst)]
     # Group the dataframe and take the maximum frequency for each group
@@ -190,7 +189,7 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
         gene_legend_handles.append(Patch(facecolor=gene_color, alpha=0.2, label=gene_label))
     for experiment in unique_experiments:
         df_experiment = df_grouped[df_grouped['Experiment'] == experiment]
-        ax.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=exp_col[experiment], label=experiment)
+        ax.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=expe_col[experiment], label=experiment)
     ax.set_xlim(1, 3650)
     ax.set_xlabel('ref_pos')
     ax.set_ylabel('frequency')
@@ -219,19 +218,17 @@ min_cov = 100
 relevant_mut_colors = COLORS
 
 ## Main Code
+# Load the initial freq.csv files into a pandas df
+df_carmel = pd.read_csv(carmel_path)
+df_shir = pd.read_csv(shir_path)
 
-#Load the intial freq.csv files into a pandas df
-#df_maria =pd.read_csv(maria_path)
-df_carmel =pd.read_csv(carmel_path)
-df_shir =pd.read_csv(shir_path)
-
-#Fix Shir's 'File' column to match Carmel's
+# Fix Shir's 'File' column to match Carmel's
 # Remove the hyphen after the number
 df_shir['File'] = df_shir['File'].str.replace('-', '', n=1)
 # Insert "_moi10_" after the capitalized letter
 df_shir['File'] = df_shir['File'].str.replace('([A-Z])', r'\1_moi10_', n=1)
 
-#Clean up the freq files and add relevant data
+# Clean up the freq files and add relevant data
 df_arr_carmel = df_cleanup(df_carmel, "Carmel")
 df_arr_shir = df_cleanup(df_shir, "Shir")
 
@@ -239,7 +236,7 @@ df_arr_shir = df_cleanup(df_shir, "Shir")
 joined_freq = pd.concat([df_arr_carmel, df_arr_shir])
 joined_freq = joined_freq[joined_freq['base_count'] != 0].reset_index(drop=True)
 
-#Create Uniq Identifier for each Experiment
+# Create Uniq Identifier for each Experiment
 joined_freq['Experiment'] = joined_freq['Done_by'] + "-" + \
                             joined_freq['MOI'].astype(str) + "-" \
                             + joined_freq['Line'].astype(str)
@@ -256,7 +253,7 @@ exp_col = {'Carmel-1-A': 'brown', 'Carmel-1-B': 'rosybrown', 'Carmel-10-A': 'dar
            'Shir-10-B': 'gray', 'Shir-10-C': 'black'}
 
 # Create Graph per Line and save them to the Export folder:
-create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
+create_per_line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
 create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
@@ -264,5 +261,5 @@ create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 # Create Heatmap for passage 0
 create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
 
-# Create a graph of positon of mutation along the genome of MS2
+# Create a graph of position of mutation along the genome of MS2
 create_genome_map_figure(Mutation_df, mut_lst,exp_col, export_path + 'Figure4')
