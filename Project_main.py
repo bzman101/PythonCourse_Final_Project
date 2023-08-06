@@ -51,7 +51,7 @@ def mut_cutoffs(mut_df,min_coverage,min_frequency):
     primers = list(range(1, 20)) + list(range(1291, 1304)) + list(range(1179, 1200)) + list(range(2270, 2288)) + \
               list(range(2167, 2188)) + list(range(3548, 3570))
     problematic = [17, 18, 19, 20, 21, 22, 23, 183, 188, 189, 190, 196, 274, 317, 364, 452, 762, 2719, 3117, 3133, 3139,
-                   3143, 3146, 3150, 3401, 3539, 3542]
+                   3143, 3146, 3150, 3401, 3539, 3542, 3547]
     remove_list = primers + problematic
     filtered_mut_df = filtered_mut_df[~filtered_mut_df['ref_pos'].isin(remove_list)]
     # Lose only the mutations that has not met the cutoffs in any of the passages.
@@ -134,7 +134,6 @@ def create_per_mutation_figure(df, mutations_list, output_path):
         ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         # Set legend font size
         ax.legend(fontsize='small')
-
     plt.tight_layout()
     # Save the figure with a lower dpi
     plt.savefig(output_path, dpi=800)
@@ -143,6 +142,7 @@ def create_per_mutation_figure(df, mutations_list, output_path):
     return
 def create_heatmap_figure(df, mutation_lst, output_path):
     # Filter the dataframe
+    #mutatin lsr
     df = df[(df['Passage'] == 0) & (df['Full Mutation'].isin(mutation_lst))]
     # Pivot the dataframe
     df_pivot = df.pivot(index='Experiment', columns='Full Mutation', values='frequency')
@@ -153,6 +153,8 @@ def create_heatmap_figure(df, mutation_lst, output_path):
     plt.savefig(output_path)
     plt.show()
     return
+
+
 def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     # Filter the dataframe
     df = df[df['Full Mutation'].isin(mutation_lst)]
@@ -161,17 +163,37 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     # Create a list of unique colors for each experiment
     unique_experiments = df_grouped['Experiment'].unique()
     # Create the scatter plot
-    plt.figure(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(15, 4))
+
+    # Define the x-axis ranges for the different genes
+    gene_ranges = [(1, 1311), (1311, 1727), (1678, 1905), (1761, 3650)]
+    # Define the colors for the different genes
+    gene_colors = ['lightsteelblue', 'cornflowerblue', 'royalblue', 'midnightblue']
+    # Define the labels for the different genes
+    gene_labels = ['mat', 'cp', 'lys', 'rep']
+
+    # Fill the background colors for the different genes and create custom legend handles
+    gene_legend_handles = []
+    for gene_range, gene_color, gene_label in zip(gene_ranges, gene_colors, gene_labels):
+        ax.axvspan(gene_range[0], gene_range[1], facecolor=gene_color, alpha=0.2)
+        gene_legend_handles.append(Patch(facecolor=gene_color, alpha=0.2, label=gene_label))
+
     for experiment in unique_experiments:
         df_experiment = df_grouped[df_grouped['Experiment'] == experiment]
-        plt.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=exp_col[experiment], label=experiment)
-    plt.xlim(1, 3650)
-    plt.xlabel('ref_pos')
-    plt.ylabel('frequency')
-    plt.title('Genome Map')
-    # Create a legend
-    legend_handles = [Patch(facecolor=exp_col[experiment], label=experiment) for experiment in unique_experiments]
-    plt.legend(handles=legend_handles, title='Experiment', loc='center left')
+        ax.scatter(df_experiment['ref_pos'], df_experiment['frequency'], color=exp_col[experiment], label=experiment)
+
+    ax.set_xlim(1, 3650)
+    ax.set_xlabel('ref_pos')
+    ax.set_ylabel('frequency')
+    ax.set_title('Genome Map')
+    # Create a legend for the experiments on the left side
+    experiment_legend_handles = [Patch(facecolor=exp_col[experiment], label=experiment) for experiment in unique_experiments]
+    legend1 = ax.legend(handles=experiment_legend_handles, title='Experiment', loc='center left', bbox_to_anchor=(-0.17, 0.5))
+    # Create a legend for the background colors on the right side
+    legend2 = ax.legend(handles=gene_legend_handles, title='Genes', loc='center left', bbox_to_anchor=(1.01, 0.5))
+    # Add both legends to the plot
+    ax.add_artist(legend1)
+    ax.add_artist(legend2)
     # Save the figure
     plt.savefig(output_path, bbox_inches='tight', dpi=800)
     # Show the figure
@@ -179,13 +201,12 @@ def create_genome_map_figure(df, mutation_lst, exp_col, output_path):
     return
 
 
-
 ## Constants and Parameters
-maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
+#maria_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Maria/Maria1.csv"
 carmel_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Carmel/Carmel1.csv"
 shir_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/DATA/Shir/Shir1.csv"
 export_path = "/Users/adibnzv/Desktop/DESKTOP/SCHOOL/PhD/Year 1/Semester 2/Python for Biologists/Final Project/PythonCourse_Final_Project/Export/"
-min_freq = 0.05
+min_freq = 0.2
 min_cov = 100
 
 ## Main Code
@@ -227,7 +248,7 @@ exp_col = assign_colors_to_experiment(Mutation_df)
 create_per_Line_figure(Mutation_df, mut_lst, export_path + 'Figure1')
 
 # Create Graph per Mutation and save them to the Export folder:
-#create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
+create_per_mutation_figure(Mutation_df, mut_lst, export_path + 'Figure2')
 
 # Create Heatmap for passage 0
 create_heatmap_figure(Mutation_df, mut_lst, export_path + 'Figure3')
